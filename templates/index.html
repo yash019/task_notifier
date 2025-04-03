@@ -1,55 +1,149 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Task Notifier</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gradient-to-r from-blue-100 to-purple-200 min-h-screen flex items-center justify-center">
-  <div class="bg-white shadow-2xl rounded-2xl p-8 w-full max-w-md">
-    <h1 class="text-3xl font-bold text-center text-purple-700 mb-6">📝 Yuku's Task Notifier</h1>
+<body class="bg-gradient-to-r from-blue-100 to-purple-200 min-h-screen p-4">
+
+  <!-- Fixed Bottom Quote -->
+  <div id="heart-quote"
+       class="fixed bottom-4 left-1/2 transform -translate-x-1/2 text-sm sm:text-base font-semibold text-purple-900 bg-purple-200 px-4 py-2 rounded-xl shadow-lg z-50">
+    You are capable of amazing things 💜
+  </div>
+
+  <!-- Main Container -->
+  <div class="bg-white shadow-2xl rounded-2xl p-6 max-w-lg mx-auto w-full">
+    <h1 class="text-3xl font-bold text-center text-purple-700 mb-6">
+      📝 Yukta's Task Notifier
+    </h1>
 
     <!-- Add Task Form -->
-    <form method="POST" class="space-y-3 mb-6">
-      <input type="text" name="new_task" placeholder="Task name..." required
-             class="w-full px-4 py-2 border border-purple-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400">
-      <input type="email" name="task_email" placeholder="Recipient email..." required
-             class="w-full px-4 py-2 border border-purple-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400">
-      <button type="submit"
-              class="w-full bg-purple-600 text-white px-4 py-2 rounded-xl hover:bg-purple-700 transition">
-        Add Task
-      </button>
+    <form method="POST" class="space-y-3 mb-6" id="task-form">
+      <input type="text" name="new_task" placeholder="Task name..." required class="w-full px-4 py-2 border border-purple-300 rounded-xl">
+      <input type="text" name="property_manager" placeholder="Property Manager..." required class="w-full px-4 py-2 border border-purple-300 rounded-xl">
+      <input type="email" name="property_manager_email" placeholder="Manager Email..." required class="w-full px-4 py-2 border border-purple-300 rounded-xl">
+      <input type="text" name="property_name" placeholder="Property Name..." required class="w-full px-4 py-2 border border-purple-300 rounded-xl">
+      <div id="emails" class="space-y-2">
+        <input type="email" name="task_email" placeholder="Recipient email..." required class="w-full px-4 py-2 border border-purple-300 rounded-xl">
+      </div>
+      <button type="button" onclick="addEmailField()" class="text-sm text-blue-600 hover:underline">+ Add another email</button>
+      <textarea name="notes" rows="3" placeholder="Notes / Details (editable)" class="w-full p-2 border rounded-xl text-sm resize-none focus:ring-2 focus:ring-purple-300"></textarea>
+      <button type="submit" class="w-full bg-purple-600 text-white py-3 rounded-xl font-semibold hover:bg-purple-700 transition">Add Task</button>
     </form>
 
     <!-- Task List -->
     {% for task, data in tasks.items() %}
       <div class="bg-purple-50 p-4 rounded-xl shadow mb-4">
-        <div class="flex justify-between items-center">
+        <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-2">
+          <span class="text-lg font-medium text-gray-800">{{ task }}</span>
           {% if not data.done %}
-            <span class="text-lg text-gray-800 font-medium">{{ task }}</span>
-            <form method="POST" style="display: inline;">
-              <input type="hidden" name="remind_task" value="{{ task }}">
-              <button type="submit" class="text-sm text-blue-600 hover:underline">Remind🔔</button>
-            </form>
-          {% else %}
-            <span class="line-through text-gray-400 text-lg">{{ task }} ✅</span>
+          <form method="POST" onsubmit="return showReminderPreview('{{ task }}')" class="mt-1 sm:mt-0">
+            <input type="hidden" name="remind_task" value="{{ task }}">
+            <button type="submit" class="text-sm text-blue-600 hover:underline flex items-center gap-1">🔔 <span>Remind</span></button>
+          </form>
           {% endif %}
         </div>
-        <div class="text-sm text-gray-500 mb-2">{{ data.email }}</div>
+        <div class="text-sm text-gray-500 mb-1">📋 Manager: {{ data.property_manager }} ({{ data.manager_email }})</div>
+        <div class="text-sm text-gray-500 mb-1">🏢 Property: {{ data.property_name }}</div>
+        <div class="text-sm text-gray-500 mb-1">🗓️ Created: {{ data.date }}</div>
+        <div class="text-sm text-gray-500 mb-1">📧 Emails:
+          <ul class="list-disc pl-5">
+            {% for email in data.emails %}
+              <li>{{ email }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="mt-4">
+          <h3 class="font-semibold text-purple-700 mb-2">📌 Subtasks</h3>
+          {% for subtask in data.subtasks %}
+          <form method="POST" class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+            <input type="hidden" name="subtask_name" value="{{ subtask.name }}">
+            <input type="hidden" name="task_parent" value="{{ task }}">
+            <input type="text" name="edited_name" value="{{ subtask.name }}" class="px-3 py-1 border rounded-xl text-sm flex-1">
+            <select name="subtask_status" class="border border-purple-300 rounded-xl p-1 text-sm text-purple-700">
+              <option value="Started" {% if subtask.status == 'Started' %}selected{% endif %}>Started</option>
+              <option value="In Progress" {% if subtask.status == 'In Progress' %}selected{% endif %}>In Progress</option>
+              <option value="Completed" {% if subtask.status == 'Completed' %}selected{% endif %}>Completed</option>
+            </select>
+            <button type="submit" name="edit_subtask_name" value="{{ subtask.name }}" class="text-sm bg-blue-500 text-white px-3 py-1 rounded-xl hover:bg-blue-600">Update</button>
+          </form>
+          <div class="text-xs text-gray-400 ml-1">🗓️ {{ subtask.date }}</div>
+          {% endfor %}
+
+          <form method="POST" class="flex gap-2 mt-3">
+            <input type="hidden" name="task_parent" value="{{ task }}">
+            <input type="text" name="new_subtask" placeholder="New subtask..." required class="flex-1 px-3 py-1 border border-purple-300 rounded-xl text-sm">
+            <button type="submit" class="px-3 py-1 bg-purple-500 text-white rounded-xl text-sm hover:bg-purple-600">Add</button>
+          </form>
+        </div>
 
         {% if not data.done %}
-        <form method="POST" class="space-y-2">
+        <form method="POST" class="space-y-2 mt-4">
           <input type="hidden" name="task_done" value="{{ task }}">
-          <textarea name="extra_info" rows="2" placeholder="Optional notes..."
-                    class="w-full p-2 border rounded-xl text-sm focus:ring-2 focus:ring-purple-300"></textarea>
-          <button type="submit"
-                  class="bg-green-500 text-white w-full py-2 rounded-xl hover:bg-green-600 transition">
-            Mark Done & Notify
-          </button>
+          <textarea name="extra_info" rows="2" placeholder="Optional notes..." class="w-full p-2 border rounded-xl text-sm focus:ring-2 focus:ring-purple-300 resize-none">{{ data.notes }}</textarea>
+          <button type="submit" class="bg-green-500 text-white w-full py-2 rounded-xl font-medium hover:bg-green-600 transition">Mark Done & Notify</button>
         </form>
+        {% else %}
+        <div class="text-green-700 font-semibold mt-2">✅ Task Completed</div>
+        <div class="text-sm text-gray-700 mt-1">📝 Notes: {{ data.notes }}</div>
         {% endif %}
       </div>
     {% endfor %}
   </div>
+
+  <!-- Reminder Preview Modal -->
+  <div id="reminderModal" class="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center hidden z-50">
+    <div class="bg-white p-6 rounded-xl max-w-lg w-full shadow-2xl">
+      <h2 class="text-xl font-bold mb-4 text-purple-700">Preview Reminder Email</h2>
+      <form method="POST">
+        <input type="hidden" name="remind_task" id="modalTaskName">
+        <textarea name="custom_reminder_msg" id="customReminderMsg" rows="5" class="w-full p-3 border rounded-xl text-sm resize-none focus:ring-2 focus:ring-purple-400" placeholder="Optional message..."></textarea>
+        <div class="mt-4 flex justify-end gap-3">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-300 rounded-xl hover:bg-gray-400 text-sm">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 text-sm">Send Reminder</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function addEmailField() {
+      const input = document.createElement("input");
+      input.type = "email";
+      input.name = "task_email";
+      input.placeholder = "Recipient email...";
+      input.required = true;
+      input.className = "w-full px-4 py-2 border border-purple-300 rounded-xl";
+      document.getElementById("emails").appendChild(input);
+    }
+
+    function showReminderPreview(taskName) {
+      document.getElementById("reminderModal").classList.remove("hidden");
+      document.getElementById("modalTaskName").value = taskName;
+      return false;
+    }
+
+    function closeModal() {
+      document.getElementById("reminderModal").classList.add("hidden");
+    }
+
+    const quotes = [
+      "You are capable of amazing things 💜",
+      "Small steps lead to big change 🌱",
+      "Productivity with heart 💖",
+      "Keep going, you're doing great ✨",
+      "Progress beats perfection 📈",
+      "One task at a time. You got this 💪"
+    ];
+    const quoteEl = document.getElementById("heart-quote");
+    setInterval(() => {
+      quoteEl.innerText = quotes[Math.floor(Math.random() * quotes.length)];
+    }, 8000);
+  </script>
 </body>
 </html>
